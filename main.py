@@ -27,11 +27,8 @@ class BotHandler:
     def get_updates(self, offset=None, timeout=10):
         method = 'getUpdates'
         params = {'timeout': timeout, 'offset': offset}
-        print(self.api_url+method, params)
         resp = requests.get(self.api_url + method, params)
-
         result_json = resp.json()['result']
-        print(result_json)
         return result_json
 
     def send_message(self, chat_id, text):
@@ -47,7 +44,6 @@ class BotHandler:
             last_update = get_result[-1]
             flag = True
         else:
-            #last_update = get_result[len(get_result)]
             flag = False
 
         return last_update, flag
@@ -64,8 +60,7 @@ class MyThread(Thread):
             time.sleep(self.interval)
             for key in figi:
                 dif = self.func(figi[key])
-                print(dif)
-                if abs(dif) >= delta:
+                if abs(dif) >= self.delta:
                     for chat_id in user_ids:
                         greet_bot.send_message(chat_id, key +"  " + str(dif) + '%')
 
@@ -76,62 +71,49 @@ def create_threads(funcs, intervals, deltas):
         my_thread.start()
         print ('Tread', name, 'started')
 
-def min1_dif(figi):
-    ans = client.market.market_candles_get(figi = figi, 
-                                     _from = (datetime.now() - timedelta(minutes=2)).isoformat()+'+03:00',
-                                     to = datetime.now().isoformat()+'+03:00' ,
-                                     interval = '1min')
 
-    try:
-        ans = ans.to_dict()['payload']['candles'][-1]
-        return (ans['c'] - ans['o'])/ans['o'] * 100
-    except:
-        return 0
 def min15_dif(figi):
     ans = client.market.market_candles_get(figi = figi, 
-                                     _from = (datetime.now() - timedelta(minutes=20)).isoformat()+'+03:00',
-                                     to = datetime.now().isoformat()+'+03:00' ,
+                                     _from = (datetime.now() - timedelta(minutes=20) - time_shift).isoformat()+'+03:00',
+                                     to = (datetime.now() - time_shift).isoformat()+'+03:00' ,
                                      interval = '15min')
 
     try:
         ans = ans.to_dict()['payload']['candles'][-1]
-        print ('min15_dif called')
+        print('min 15 requesting')
         return (ans['c'] - ans['o'])/ans['o'] * 100
     except:
         return 0    
 def hour_dif(figi):
     ans = client.market.market_candles_get(figi = figi, 
-                                     _from = (datetime.now() - timedelta(minutes=90)).isoformat()+'+03:00',
-                                     to = datetime.now().isoformat()+'+03:00' ,
+                                     _from = (datetime.now() - timedelta(minutes=90) - time_shift).isoformat()+'+03:00',
+                                     to = (datetime.now() - time_shift).isoformat()+'+03:00' ,
                                      interval = 'hour')
 
     try:
         ans = ans.to_dict()['payload']['candles'][-1]
-        print ('hour_dif called')
         return (ans['c'] - ans['o'])/ans['o'] * 100
     except:
         return 0  
 def day_dif(figi):
     ans = client.market.market_candles_get(figi = figi, 
-                                     _from = (datetime.now() - timedelta(minutes=60*48)).isoformat()+'+03:00',
-                                     to = datetime.now().isoformat()+'+03:00' ,
+                                     _from = (datetime.now() - timedelta(hours=25) - time_shift).isoformat()+'+03:00',
+                                     to = (datetime.now() - time_shift).isoformat()+'+03:00' ,
                                      interval = 'day')
 
     try:
         ans = ans.to_dict()['payload']['candles'][-1]
-        print ('hour_dif called')
         return (ans['c'] - ans['o'])/ans['o'] * 100
     except:
         return 0 
 def week_dif(figi):
     ans = client.market.market_candles_get(figi = figi, 
-                                     _from = (datetime.now() - timedelta(minutes=60*24*14)).isoformat()+'+03:00',
-                                     to = datetime.now().isoformat()+'+03:00' ,
+                                     _from = (datetime.now() - timedelta(days=8) - time_shift).isoformat()+'+03:00',
+                                     to = (datetime.now() - time_shift).isoformat()+'+03:00' ,
                                      interval = 'week')
 
     try:
         ans = ans.to_dict()['payload']['candles'][-1]
-        print ('week_dif called')
         return (ans['c'] - ans['o'])/ans['o'] * 100
     except:
         return 0 
@@ -141,17 +123,28 @@ greet_bot = BotHandler(token_telegram)
 
 token_sandbox = 't.rxYo9fDNVFHA52jYHq9pOl4bWaQV5C-AqJLg5KxExzPyk8SLIFWcPorKjrzel2w53S9AZsJRArSpRqZxiZAG9A'
 client = openapi.sandbox_api_client(token_sandbox)
-client.sandbox.sandbox_clear_post()
-client.sandbox.sandbox_register_post()
-client.sandbox.sandbox_currencies_balance_post(sandbox_set_currency_balance_request={"currency": "USD", "balance": 1000})
-figi = {'yandex': 'BBG006L8G4H1'}
 
 user_ids = set()
+figi = {}
+
+funcs = [min15_dif, hour_dif, day_dif, week_dif]
+intervals = [60 * 5, 60 * 20, 60 * 60 * 8, 60 * 60 * 24]
+deltas = [3, 5, 5, 7]
+
+time_shift = timedelta(hours=8)
 
 def main():  
-    funcs = [min1_dif, min15_dif, hour_dif, day_dif, week_deef]
-    intervals = [10, 60 * 5, 60 * 20, 60 * 60 * 8, 60 * 60 * 24]
-    deltas = [0, 3, 5, 5, 5]
+    #get figies
+    stocks = client.market.market_stocks_get().to_dict()['payload']['instruments']
+    for stock in stocks:
+        figi[stock['name']] = stock['figi']
+
+    #set client params
+    client.sandbox.sandbox_clear_post()
+    client.sandbox.sandbox_register_post()
+    client.sandbox.sandbox_currencies_balance_post(sandbox_set_currency_balance_request={"currency": "USD", "balance": 1000})
+
+    #create a thread for each function
     create_threads(funcs, intervals, deltas)
 
     new_offset = None
@@ -166,7 +159,7 @@ def main():
         
 
             if not(chat_id in user_ids):
-                print('New user', chat_id)
+                print(len(chat_id),'users')
                 user_ids.add(chat_id)
                 
             sleep(1)   
