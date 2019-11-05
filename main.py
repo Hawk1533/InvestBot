@@ -44,6 +44,7 @@ class BotHandler:
             last_update = get_result[-1]
             flag = True
         else:
+            last_update = '0'
             flag = False
 
         return last_update, flag
@@ -57,13 +58,13 @@ class MyThread(Thread):
     
     def run(self):
         while(1):
-            time.sleep(self.interval)
             for key in figi:
                 dif = self.func(figi[key])
                 if abs(dif) >= self.delta:
                     for chat_id in user_ids:
                         greet_bot.send_message(chat_id, key +"  " + str(dif) + '%')
-
+            time.sleep(self.interval)
+                        
 def create_threads(funcs, intervals, deltas):
     for i in range(len(funcs)):
         name = "Thread #%s" % (i+1)
@@ -77,7 +78,6 @@ def min15_dif(figi):
                                      _from = (datetime.now() - timedelta(minutes=20) - time_shift).isoformat()+'+03:00',
                                      to = (datetime.now() - time_shift).isoformat()+'+03:00' ,
                                      interval = '15min')
-
     try:
         ans = ans.to_dict()['payload']['candles'][-1]
         print('min 15 requesting')
@@ -136,7 +136,8 @@ time_shift = timedelta(hours=8)
 def main():  
     #get figies
     stocks = client.market.market_stocks_get().to_dict()['payload']['instruments']
-    for stock in stocks:
+    print ('Processing', len(stocks), 'stocks')
+    for stock in stocks[:10]:
         figi[stock['name']] = stock['figi']
 
     #set client params
