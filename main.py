@@ -86,7 +86,7 @@ def min15_dif(figi):
         return 0    
 def hour_dif(figi):
     ans = client.market.market_candles_get(figi = figi, 
-                                     _from = (datetime.now() - timedelta(minutes=90) - time_shift).isoformat()+'+03:00',
+                                     _from = (datetime.now() - timedelta(minutes=60*30) - time_shift).isoformat()+'+03:00',
                                      to = (datetime.now() - time_shift).isoformat()+'+03:00' ,
                                      interval = 'hour')
 
@@ -97,7 +97,7 @@ def hour_dif(figi):
         return 0  
 def day_dif(figi):
     ans = client.market.market_candles_get(figi = figi, 
-                                     _from = (datetime.now() - timedelta(hours=25) - time_shift).isoformat()+'+03:00',
+                                     _from = (datetime.now() - timedelta(hours=80) - time_shift).isoformat()+'+03:00',
                                      to = (datetime.now() - time_shift).isoformat()+'+03:00' ,
                                      interval = 'day')
 
@@ -127,9 +127,9 @@ client = openapi.sandbox_api_client(token_sandbox)
 user_ids = set()
 figi = {}
 
-funcs = [min15_dif, hour_dif, day_dif, week_dif]
-intervals = [60 * 5, 60 * 20, 60 * 60 * 8, 60 * 60 * 24]
-deltas = [3, 5, 5, 7]
+funcs = [hour_dif, day_dif]
+intervals = [60 * 20, 60 * 60 * 8]
+deltas = [5, 5]
 
 time_shift = timedelta(hours=8)
 
@@ -137,7 +137,7 @@ def main():
     #get figies
     stocks = client.market.market_stocks_get().to_dict()['payload']['instruments']
     print ('Processing', len(stocks), 'stocks')
-    for stock in stocks[:10]:
+    for stock in stocks:
         figi[stock['name']] = stock['figi']
 
     #set client params
@@ -160,8 +160,8 @@ def main():
         
 
             if not(chat_id in user_ids):
-                print(len(chat_id),'users')
                 user_ids.add(chat_id)
+                print(len(user_ids),'users')
                 
             sleep(1)   
             new_offset = update_id + 1
