@@ -62,7 +62,9 @@ class MyThread(Thread):
                 dif = self.func(figi[key])
                 if abs(dif) >= self.delta:
                     for chat_id in user_ids:
-                        greet_bot.send_message(chat_id, key +"  " + str(dif) + '%')
+                        greet_bot.send_message(chat_id, key +"  " + str(dif) + '%' + "  " + self.func.__name__)
+                time.sleep(1)
+
             time.sleep(self.interval)
                         
 def create_threads(funcs, intervals, deltas):
@@ -80,8 +82,7 @@ def min15_dif(figi):
                                      interval = '15min')
     try:
         ans = ans.to_dict()['payload']['candles'][-1]
-        print('min 15 requesting')
-        return (ans['c'] - ans['o'])/ans['o'] * 100
+        return int((ans['c'] - ans['o'])/ans['o'] * 100)
     except:
         return 0    
 def hour_dif(figi):
@@ -92,7 +93,7 @@ def hour_dif(figi):
 
     try:
         ans = ans.to_dict()['payload']['candles'][-1]
-        return (ans['c'] - ans['o'])/ans['o'] * 100
+        return int((ans['c'] - ans['o'])/ans['o'] * 100)
     except:
         return 0  
 def day_dif(figi):
@@ -103,7 +104,7 @@ def day_dif(figi):
 
     try:
         ans = ans.to_dict()['payload']['candles'][-1]
-        return (ans['c'] - ans['o'])/ans['o'] * 100
+        return int((ans['c'] - ans['o'])/ans['o'] * 100)
     except:
         return 0 
 def week_dif(figi):
@@ -114,7 +115,7 @@ def week_dif(figi):
 
     try:
         ans = ans.to_dict()['payload']['candles'][-1]
-        return (ans['c'] - ans['o'])/ans['o'] * 100
+        return int((ans['c'] - ans['o'])/ans['o'] * 100)
     except:
         return 0 
 
@@ -128,10 +129,14 @@ user_ids = set()
 figi = {}
 
 funcs = [hour_dif, day_dif]
-intervals = [60 * 20, 60 * 60 * 8]
+intervals = [60 * 15, 60 * 60 * 2]
 deltas = [5, 5]
 
 time_shift = timedelta(hours=8)
+
+import telepot
+bot = telepot.Bot(token_telegram)
+bot.deleteWebhook()
 
 def main():  
     #get figies
