@@ -27,7 +27,10 @@ class BotHandler:
     def get_updates(self, offset=None, timeout=10):
         method = 'getUpdates'
         params = {'timeout': timeout, 'offset': offset}
-        resp = requests.get(self.api_url + method, params)
+        try:
+            resp = requests.get(self.api_url + method, params)
+        except:
+            logging.ERROR("request eror")
         result_json = resp.json()['result']
         return result_json
 
@@ -55,15 +58,26 @@ class MyThread(Thread):
         self.interval = interval
         self.func = func
         self.delta = delta
+
+    def get_dif(key):
+        api_success = False
+        while !api_success:
+            try:
+                dif = self.func(figi[key])
+                api_success = True
+            except:
+                logger.ERROR('API ERROR' + figi)
+                time.sleep(10)
+        return dif
     
     def run(self):
         while(1):
             for key in figi:
-                dif = self.func(figi[key])
-                if abs(dif) >= self.delta:
+                dif = get_dif(key)
+                if dif <= -self.delta:
                     for chat_id in user_ids:
                         greet_bot.send_message(chat_id, key +"  " + str(dif) + '%' + "  " + self.func.__name__)
-                time.sleep(1)
+                time.sleep(2)
 
             time.sleep(self.interval)
                         
@@ -137,6 +151,10 @@ time_shift = timedelta(hours=8)
 import telepot
 bot = telepot.Bot(token_telegram)
 bot.deleteWebhook()
+
+import logging
+logging.basicConfig(filename="test.log", level=logging.DEBUG, filemode="w")
+ 
 
 def main():  
     #get figies
